@@ -9,47 +9,41 @@ import java.nio.charset.Charset;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 
 public class MyFileVisitor extends SimpleFileVisitor<Path> {
-	
+
 	private Charset inputCharset = Charset.forName("Cp1250");
 	private Charset outputCharset = Charset.forName("UTF-8");
 	private FileChannel outputChannel;
-	
 
-	public MyFileVisitor(String outputDirectory) throws IOException {
-		RandomAccessFile out = new RandomAccessFile(outputDirectory,"rw");
-		this.outputChannel = out.getChannel();
+	public MyFileVisitor(Path outputDirectory) throws IOException {
+		this.outputChannel = FileChannel.open(outputDirectory, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
 	}
 
 	@Override
 	public FileVisitResult visitFile(Path inputFile, BasicFileAttributes attrs) throws IOException {
-		if(attrs.isRegularFile()&&(!inputFile.getFileName().toString().contains(".DS_Store"))) {
-			System.out.println("Visits file " + inputFile);
-		
-			RandomAccessFile randomAccessFile = new RandomAccessFile(inputFile.toFile(),"r");
-			FileChannel fc = randomAccessFile.getChannel();
-			ByteBuffer buf = ByteBuffer.allocate((int)fc.size());
+		if (attrs.isRegularFile() && (!inputFile.getFileName().toString().contains(".DS_Store"))) {
+			FileChannel fc = FileChannel.open(inputFile, StandardOpenOption.READ);
+			ByteBuffer buf = ByteBuffer.allocate((int) fc.size());
 			fc.read(buf);
 			fc.close();
 			buf.flip();
 			CharBuffer cbuf = inputCharset.decode(buf);
 			ByteBuffer bbuf = outputCharset.encode(cbuf);
-			System.out.println(bbuf);
 			outputChannel.write(bbuf);
-			
+
 		}
-		
-	 return FileVisitResult.CONTINUE;
+
+		return FileVisitResult.CONTINUE;
 	}
 
 	@Override
 	public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-		
+
 		System.err.println("Could't read the file" + exc.getMessage());
 		return FileVisitResult.CONTINUE;
 	}
-	
-	
+
 }
