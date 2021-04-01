@@ -1,7 +1,6 @@
 package zad1;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.channels.FileChannel;
@@ -24,7 +23,7 @@ public class MyFileVisitor extends SimpleFileVisitor<Path> {
 
 	@Override
 	public FileVisitResult visitFile(Path inputFile, BasicFileAttributes attrs) throws IOException {
-		if (attrs.isRegularFile() && (!inputFile.getFileName().toString().contains(".DS_Store"))) {
+		if (attrs.isRegularFile() && (!inputFile.getFileName().toString().startsWith("."))) {
 
 			FileChannel inputChannel = FileChannel.open(inputFile, StandardOpenOption.READ);
 
