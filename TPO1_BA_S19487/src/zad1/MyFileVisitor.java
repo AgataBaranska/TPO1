@@ -25,14 +25,19 @@ public class MyFileVisitor extends SimpleFileVisitor<Path> {
 	@Override
 	public FileVisitResult visitFile(Path inputFile, BasicFileAttributes attrs) throws IOException {
 		if (attrs.isRegularFile() && (!inputFile.getFileName().toString().contains(".DS_Store"))) {
-			FileChannel fc = FileChannel.open(inputFile, StandardOpenOption.READ);
-			ByteBuffer buf = ByteBuffer.allocate((int) fc.size());
-			fc.read(buf);
-			fc.close();
-			buf.flip();
-			CharBuffer cbuf = inputCharset.decode(buf);
-			ByteBuffer bbuf = outputCharset.encode(cbuf);
-			outputChannel.write(bbuf);
+
+			FileChannel inputChannel = FileChannel.open(inputFile, StandardOpenOption.READ);
+
+			ByteBuffer buffer = ByteBuffer.allocate(100);
+			while (inputChannel.read(buffer) > 0) {
+				buffer.flip();
+				CharBuffer decoded = inputCharset.decode(buffer);
+				ByteBuffer encoded = outputCharset.encode(decoded);
+				buffer.flip();
+				outputChannel.write(encoded);
+			}
+
+			inputChannel.close();
 
 		}
 
