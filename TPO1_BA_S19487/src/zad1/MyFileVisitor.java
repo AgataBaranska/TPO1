@@ -11,6 +11,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 
+
 public class MyFileVisitor extends SimpleFileVisitor<Path> {
 
 	private Charset inputCharset = Charset.forName("Cp1250");

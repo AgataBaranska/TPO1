@@ -6,13 +6,8 @@
 
 package zad2;
 
+import java.io.IOException;
 import java.io.StringReader;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Currency;
 import java.util.Locale;
 import java.util.Map;
@@ -21,6 +16,12 @@ import java.util.TreeMap;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -33,41 +34,53 @@ public class Service {
 
 	private String country = null;
 
-	private HttpClient httpClient;
+	private CloseableHttpClient httpClient;
 
 	public Service(String country) {
 		this.country = country;
 
-		// Initialisation of HTTPClient
-		httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1)
-				.followRedirects(HttpClient.Redirect.NORMAL).connectTimeout(Duration.ofSeconds(30)).build();
+		httpClient = HttpClients.createDefault();
 
 	}
 
-	private void throwOnFailedResponseCode(HttpResponse response) throws Exception {
-		// Prawidłowe kody odpowiedzi to te z zakresu 200-299.
-		// Dzielenie całkowite zastosowane żeby to sprawdzić.
-		if (response.statusCode() / 100 != 2) { // not in range 200-299?
-			throw new Exception("Response (code " + response.statusCode() + "): " + response.toString());
+	private void throwOnFailedResponseCode(CloseableHttpResponse response) throws Exception {
+
+		if (response.getStatusLine().getStatusCode() / 100 != 2) { // not in range 200-299?
+			throw new Exception(
+					"Response (code " + response.getStatusLine().getStatusCode() + "): " + response.toString());
 		}
 	}
 
 //returns info about Weather for specific town in JSON format
-	public String getWeather(String city) {
+	public String getWeather(String city) throws IOException {
 		String API_KEY = "56d1e70427d1f795eb2f2b027377ad11";
 		String urlString = "http://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + API_KEY;
 
 		try {
-			HttpRequest request = HttpRequest.newBuilder().uri(URI.create(urlString)).build();
-			HttpResponse<String> response = httpClient.send(request,
-					HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-			throwOnFailedResponseCode(response);
-			return response.body();
+			HttpGet request = new HttpGet(urlString);
+			CloseableHttpResponse response = httpClient.execute(request);
+			try {
+
+				throwOnFailedResponseCode(response);
+
+				HttpEntity entity = response.getEntity();
+				String result = "";
+				if (entity != null) {
+					result = EntityUtils.toString(entity);
+				}
+				return result;
+
+			} catch (Exception ex) {
+				System.err.println(ex.toString());
+			} finally {
+				response.close();
+			}
 
 		} catch (Exception ex) {
 			System.err.println(ex.toString());
+		} finally {
+			httpClient.close();
 		}
-
 		return "";
 	}
 
@@ -84,12 +97,17 @@ public class Service {
 		String urlString = "https://api.exchangerate.host/latest?base=" + countryCurrencyCode + "&symbols="
 				+ currencyCode;
 		try {
-			HttpRequest request = HttpRequest.newBuilder().uri(URI.create(urlString)).build();
-			HttpResponse<String> response = httpClient.send(request,
-					HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+			HttpGet request = new HttpGet(urlString);
+			CloseableHttpResponse response = httpClient.execute(request);
 			throwOnFailedResponseCode(response);
 
-			JsonElement root = new JsonParser().parse(response.body());
+			HttpEntity entity = response.getEntity();
+			String result = "";
+			if (entity != null) {
+				result = EntityUtils.toString(entity);
+			}
+
+			JsonElement root = new JsonParser().parse(result);
 			Double exchangeRate = root.getAsJsonObject().get("rates").getAsJsonObject().get(currencyCode).getAsDouble();
 
 			return exchangeRate;
@@ -110,16 +128,21 @@ public class Service {
 		Double exchangeRate = null;
 
 		for (int i = 0; i < 2 && exchangeRate == null; i++) {
-		
+
 			try {
-				HttpRequest request = HttpRequest.newBuilder().uri(URI.create(urlString[i])).build();
-				HttpResponse<String> response = httpClient.send(request,
-						HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+				HttpGet request = new HttpGet(urlString[i]);
+				CloseableHttpResponse response = httpClient.execute(request);
 				throwOnFailedResponseCode(response);
 
 				String countryCurrencyCode = getAvailableCurrencies().get(country);
 
-				Document document = convertStringToXMLDocument(response.body());
+				HttpEntity entity = response.getEntity();
+				String result = "";
+				if (entity != null) {
+					result = EntityUtils.toString(entity);
+				}
+
+				Document document = convertStringToXMLDocument(result);
 				document.getDocumentElement().normalize();
 				NodeList pozycjaNodeList = document.getElementsByTagName("pozycja");
 
@@ -140,7 +163,6 @@ public class Service {
 				}
 
 				System.out.println(exchangeRate);
-				
 
 			} catch (Exception ex) {
 				System.err.println(ex.toString());
