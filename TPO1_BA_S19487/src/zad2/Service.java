@@ -36,6 +36,11 @@ public class Service {
 
 	private CloseableHttpClient httpClient;
 
+	
+	public Service() {
+		httpClient = HttpClients.createDefault();
+	}
+	
 	public Service(String country) {
 		this.country = country;
 
@@ -52,7 +57,7 @@ public class Service {
 	}
 
 //returns info about Weather for specific town in JSON format
-	public String getWeather(String city) throws IOException {
+	public String getWeather(String city) {
 		String API_KEY = "56d1e70427d1f795eb2f2b027377ad11";
 		String urlString = "http://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + API_KEY;
 
@@ -73,13 +78,13 @@ public class Service {
 			} catch (Exception ex) {
 				System.err.println(ex.toString());
 			} finally {
-				response.close();
+				//response.close();
 			}
 
 		} catch (Exception ex) {
 			System.err.println(ex.toString());
 		} finally {
-			httpClient.close();
+			
 		}
 		return "";
 	}
@@ -172,6 +177,13 @@ public class Service {
 		return exchangeRate;
 	}
 
+	public String getWikiDescription(String city) {
+		
+		return "https://pl.wikipedia.org/wiki/"+city;
+		
+		
+		
+	}
 	private static Document convertStringToXMLDocument(String xmlString) {
 		// Parser that produces DOM object trees from XML content
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
