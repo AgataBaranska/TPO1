@@ -123,7 +123,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		if (!result.isPresent()) {
 			return "";
 		}
-
 		return td.getEditor().getText();
 	}
 
@@ -141,14 +140,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 				JsonElement el = parser.parse(weather);
 				String result = gson.toJson(el);
 
-				// Scroll bar doesn't work
-				ScrollPane scrollPane = new ScrollPane();
-				scrollPane.vbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
-				scrollPane.hbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
-				Text text = new Text(result);
-				scrollPane.setContent(text);
-				Tab resultTab = new Tab("Weather in: " + city, scrollPane);
-				tabPane.getTabs().add(resultTab);
+				String tabText = "Weather in: " + city;
+				addTabWithResult(result, tabText);
 			}
 		}
 
@@ -156,26 +149,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
 			String currencyCode = getUserInput("Enter currency code");
 			Double rate = service.getRateFor(currencyCode);
-			ScrollPane scrollPane = new ScrollPane();
-			scrollPane.vbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
-			scrollPane.hbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
-			Text text = new Text(rate.toString());
-			scrollPane.setContent(text);
-			Tab resultTab = new Tab("Rate for " + currencyCode, scrollPane);
-			tabPane.getTabs().add(resultTab);
-
+			String tabText = "Rate for " + currencyCode;
+			addTabWithResult(rate.toString(), tabText);
 		}
 
 		if (event.getSource() == getNBPRateForButt) {
 
 			Double nbpRateForCountryCurrency = service.getNBPRate();
-			ScrollPane scrollPane = new ScrollPane();
-			scrollPane.vbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
-			scrollPane.hbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
-			Text text = new Text(nbpRateForCountryCurrency.toString());
-			scrollPane.setContent(text);
-			Tab resultTab = new Tab("Rate for PLN", scrollPane);
-			tabPane.getTabs().add(resultTab);
+			String tabText = "Rate for PLN";
+			addTabWithResult(nbpRateForCountryCurrency.toString(), tabText);
+
 		}
 
 		if (event.getSource() == getWikiDescriptionButt) {
@@ -191,17 +174,28 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 				WebView browser = new WebView();
 				WebEngine webEngine = browser.getEngine();
 				webEngine.load(webUrl);
-				ScrollPane scrollPane = new ScrollPane();
-				scrollPane.vbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
-				scrollPane.hbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
-				scrollPane.setContent(browser);
-				Tab browserTab = new Tab("Wiki:" + city, scrollPane);
-				tabPane.getTabs().add(browserTab);
 
+				String tabText = "Wiki:" + city;
+				addTabWithResult(browser, tabText);
 			}
-
 		}
-
 	}
 
+	public void addTabWithResult(Object result, String tabText) {
+		
+		ScrollPane scrollPane = new ScrollPane();
+		scrollPane.vbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
+		scrollPane.hbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
+		if(result instanceof WebView) {
+			WebView browser = (WebView)result;
+			scrollPane.setContent(browser);
+		}else if(result instanceof String) {
+			Text text = new Text(result.toString());
+			scrollPane.setContent(text);
+		}
+		
+		Tab resultTab = new Tab(tabText, scrollPane);
+		tabPane.getTabs().add(resultTab);
+		tabPane.getSelectionModel().select(resultTab);
+	}
 }
