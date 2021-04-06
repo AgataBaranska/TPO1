@@ -6,14 +6,9 @@
 
 package zad2;
 
-import java.io.StringReader;
+import java.text.NumberFormat;
 import java.util.Currency;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -21,27 +16,46 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.parser.Parser;
+import org.jsoup.select.Elements;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
 public class Service {
 
-	private String country = null;
+
+	private final Locale countryLocale;
+	private final String countryCurrencyCode;
+
 	private CloseableHttpClient httpClient;
 
-	public Service() {
-		httpClient = HttpClients.createDefault();
-	}
 
 	public Service(String country) {
-		this.country = country;
+		
+		this.countryLocale = findCountryLocale(country);
+		this.countryCurrencyCode = Currency.getInstance(countryLocale).getCurrencyCode();
+
+		System.out.println(String.format("Country: %s, code: %s, curency: %s", country, countryLocale.getISO3Country(),
+				countryCurrencyCode));
+
 		httpClient = HttpClients.createDefault();
 
+	}
+
+	private Locale findCountryLocale(String countryName) {
+		countryName = countryName.trim().toLowerCase();
+
+		for (String iso : Locale.getISOCountries()) {
+			Locale l = new Locale("", iso);
+			if (l.getDisplayCountry().toLowerCase().equals(countryName)) {
+				return l;
+			}
+		}
+
+		return null;
 	}
 
 	private void throwOnFailedResponseCode(CloseableHttpResponse response) throws Exception {
@@ -52,27 +66,36 @@ public class Service {
 		}
 	}
 
-	
+	// returns info about Weather for specific town in JSON format
 	public String getWeather(String city) {
 		String API_KEY = "56d1e70427d1f795eb2f2b027377ad11";
 		String urlString = "http://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + API_KEY;
-		HttpGet request = new HttpGet(urlString);
-		String result = "";
 
 		try {
-
+			HttpGet request = new HttpGet(urlString);
 			CloseableHttpResponse response = httpClient.execute(request);
-			throwOnFailedResponseCode(response);
-			HttpEntity entity = response.getEntity();
+			try {
 
-			if (entity != null) {
-				result = EntityUtils.toString(entity);
+				throwOnFailedResponseCode(response);
+
+				HttpEntity entity = response.getEntity();
+				String result = "";
+				if (entity != null) {
+					result = EntityUtils.toString(entity);
+				}
+				return result;
+
+			} catch (Exception ex) {
+				System.err.println(ex.toString());
+			} finally {
+				// response.close();
 			}
-			return result;
 
 		} catch (Exception ex) {
 			System.err.println(ex.toString());
-		} 
+		} finally {
+
+		}
 		return "";
 	}
 
@@ -80,15 +103,13 @@ public class Service {
 	// specified by user
 	public Double getRateFor(String currencyCode) {
 
-
-	String countryCurrencyCode = getAvailableCurrencies().get(country);
 		String urlString = "https://api.exchangerate.host/latest?base=" + countryCurrencyCode + "&symbols="
 				+ currencyCode;
-		
-		HttpGet request = new HttpGet(urlString);
 		try {
+			HttpGet request = new HttpGet(urlString);
 			CloseableHttpResponse response = httpClient.execute(request);
 			throwOnFailedResponseCode(response);
+
 			HttpEntity entity = response.getEntity();
 			String result = "";
 			if (entity != null) {
@@ -110,6 +131,10 @@ public class Service {
 	// PLN exchange rate
 	public Double getNBPRate() {
 
+		if (countryCurrencyCode.toLowerCase().equals("pln")) {
+			return 1d;
+		}
+
 		String[] urlString = { "https://www.nbp.pl/kursy/xml/a061z210330.xml",
 				"https://www.nbp.pl/kursy/xml/b013z210331.xml" };
 
@@ -122,42 +147,31 @@ public class Service {
 				CloseableHttpResponse response = httpClient.execute(request);
 				throwOnFailedResponseCode(response);
 
-				String countryCurrencyCode = getAvailableCurrencies().get(country);
-
 				HttpEntity entity = response.getEntity();
-				String result = "";
+				String resultXml = "";
 				if (entity != null) {
-					result = EntityUtils.toString(entity);
+					resultXml = EntityUtils.toString(entity);
 				}
 
-				Document document = convertStringToXMLDocument(result);
-				document.getDocumentElement().normalize();
-				
-				NodeList pozycjaNodeList = document.getElementsByTagName("pozycja");
-
-				for (int j = 0; j < pozycjaNodeList.getLength(); j++) {
-
-					Node nNode = pozycjaNodeList.item(j);
-					NodeList pozycjaChildNodes = nNode.getChildNodes();
-					for (int h = 1; h < pozycjaChildNodes.getLength(); h++) {
-						Node hNode = pozycjaChildNodes.item(h);
-
-						System.out.println();
-						if (hNode.getTextContent().equals(countryCurrencyCode)) {
-							Node hhNode = pozycjaChildNodes.item(h + 1);
-							exchangeRate = Double.parseDouble(hhNode.getTextContent());
-						}
-					}
-
+				Document doc = Jsoup.parse(resultXml, "", Parser.xmlParser());
+				Elements elems = doc.select("kod_waluty:contains(" + countryCurrencyCode + ")");
+				if (!elems.isEmpty()) {
+					// Potrzebna instancja NumberFormat z polskim locale żeby parsować liczby z
+					// przecinkiem a nie kropką (3,4455) itp.
+					// Dlatego Double.parseDouble tu nie zadiała
+					NumberFormat format = NumberFormat.getInstance(Locale.forLanguageTag("pl-PL"));
+					exchangeRate = format.parse(elems.get(0).parent().select("kurs_sredni").get(0).text())
+							.doubleValue();
+					break;
+				} else {
+					throw new Exception("Nie znaleziono kursu waluty '" + countryCurrencyCode + "' w NBP");
 				}
-
-				System.out.println(exchangeRate);
-
 			} catch (Exception ex) {
 				System.err.println(ex.toString());
 			}
 		}
 
+		System.out.println(exchangeRate);
 		return exchangeRate;
 	}
 
@@ -166,38 +180,4 @@ public class Service {
 		return "https://en.wikipedia.org/wiki/" + city;
 
 	}
-
-	private static Document convertStringToXMLDocument(String xmlString) {
-		// Parser that produces DOM object trees from XML content
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-
-		// API to obtain DOM Document instance
-		DocumentBuilder builder = null;
-		try {
-			// Create DocumentBuilder with default configuration
-			builder = factory.newDocumentBuilder();
-
-			// Parse the content to Document object
-			Document doc = builder.parse(new InputSource(new StringReader(xmlString)));
-			return doc;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	private Map<String, String> getAvailableCurrencies() {
-		Locale[] locales = Locale.getAvailableLocales();
-		Map<String, String> availableCurrencies = new HashMap<>();
-		for (Locale locale : locales) {
-			try {
-				availableCurrencies.put(locale.getDisplayCountry(), Currency.getInstance(locale).getCurrencyCode());
-
-			} catch (Exception e) {
-				
-			}
-		}
-		return availableCurrencies;
-	}
-
 }
