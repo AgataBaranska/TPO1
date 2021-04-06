@@ -186,7 +186,8 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		
 		
 		if(event.getSource()==getNBPRateForButt) {
-			
+			Service service = new Service("Afganistan");
+			service.getNBPRate();
 			
 			//to do--method doesn't work
 		}

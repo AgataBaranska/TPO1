@@ -6,12 +6,11 @@
 
 package zad2;
 
-import java.io.IOException;
 import java.io.StringReader;
 import java.util.Currency;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TreeMap;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -33,17 +32,14 @@ import com.google.gson.JsonParser;
 public class Service {
 
 	private String country = null;
-
 	private CloseableHttpClient httpClient;
 
-	
 	public Service() {
 		httpClient = HttpClients.createDefault();
 	}
-	
+
 	public Service(String country) {
 		this.country = country;
-
 		httpClient = HttpClients.createDefault();
 
 	}
@@ -56,36 +52,27 @@ public class Service {
 		}
 	}
 
-//returns info about Weather for specific town in JSON format
+	
 	public String getWeather(String city) {
 		String API_KEY = "56d1e70427d1f795eb2f2b027377ad11";
 		String urlString = "http://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + API_KEY;
+		HttpGet request = new HttpGet(urlString);
+		String result = "";
 
 		try {
-			HttpGet request = new HttpGet(urlString);
+
 			CloseableHttpResponse response = httpClient.execute(request);
-			try {
+			throwOnFailedResponseCode(response);
+			HttpEntity entity = response.getEntity();
 
-				throwOnFailedResponseCode(response);
-
-				HttpEntity entity = response.getEntity();
-				String result = "";
-				if (entity != null) {
-					result = EntityUtils.toString(entity);
-				}
-				return result;
-
-			} catch (Exception ex) {
-				System.err.println(ex.toString());
-			} finally {
-				//response.close();
+			if (entity != null) {
+				result = EntityUtils.toString(entity);
 			}
+			return result;
 
 		} catch (Exception ex) {
 			System.err.println(ex.toString());
-		} finally {
-			
-		}
+		} 
 		return "";
 	}
 
@@ -93,19 +80,15 @@ public class Service {
 	// specified by user
 	public Double getRateFor(String currencyCode) {
 
-		// get all exchange rates for currency specified by currencyCode
-		/*
-		 * Przykład zlecenia dla uzyskania kursu bata wobec złotego:
-		 * https://api.exchangerate.host/latest?base=PLN&symbols=THB
-		 */
-		String countryCurrencyCode = getAvailableCurrencies().get(country);
+
+	String countryCurrencyCode = getAvailableCurrencies().get(country);
 		String urlString = "https://api.exchangerate.host/latest?base=" + countryCurrencyCode + "&symbols="
 				+ currencyCode;
+		
+		HttpGet request = new HttpGet(urlString);
 		try {
-			HttpGet request = new HttpGet(urlString);
 			CloseableHttpResponse response = httpClient.execute(request);
 			throwOnFailedResponseCode(response);
-
 			HttpEntity entity = response.getEntity();
 			String result = "";
 			if (entity != null) {
@@ -149,6 +132,7 @@ public class Service {
 
 				Document document = convertStringToXMLDocument(result);
 				document.getDocumentElement().normalize();
+				
 				NodeList pozycjaNodeList = document.getElementsByTagName("pozycja");
 
 				for (int j = 0; j < pozycjaNodeList.getLength(); j++) {
@@ -178,12 +162,11 @@ public class Service {
 	}
 
 	public String getWikiDescription(String city) {
-		
-		return "https://pl.wikipedia.org/wiki/"+city;
-		
-		
-		
+
+		return "https://en.wikipedia.org/wiki/" + city;
+
 	}
+
 	private static Document convertStringToXMLDocument(String xmlString) {
 		// Parser that produces DOM object trees from XML content
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -205,13 +188,13 @@ public class Service {
 
 	private Map<String, String> getAvailableCurrencies() {
 		Locale[] locales = Locale.getAvailableLocales();
-		Map<String, String> availableCurrencies = new TreeMap<>();
+		Map<String, String> availableCurrencies = new HashMap<>();
 		for (Locale locale : locales) {
 			try {
 				availableCurrencies.put(locale.getDisplayCountry(), Currency.getInstance(locale).getCurrencyCode());
 
 			} catch (Exception e) {
-				System.err.println(e.getMessage());
+				
 			}
 		}
 		return availableCurrencies;
