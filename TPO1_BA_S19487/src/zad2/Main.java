@@ -86,24 +86,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		menuBox.setSpacing(5);
 		Label welcomeLabel = new Label("Welcome, what do you want to do?");
 
-		getCityWeatherButt = new Button("Get weather");
-		getCityWeatherButt.setOnAction(this);
-		getCityWeatherButt.setPrefWidth(230);
-
-		getRateForButt = new Button("Get exchange rate for currency");
-		getRateForButt.setPrefWidth(230);
-		getRateForButt.setOnAction(this);
-
-		getNBPRateForButt = new Button("Get NBP rate for country currency");
-		getNBPRateForButt.setPrefWidth(230);
-		getNBPRateForButt.setOnAction(this);
-
-		getWikiDescriptionButt = new Button("Get Wiki description of city");
-		getWikiDescriptionButt.setPrefWidth(230);
-		getWikiDescriptionButt.setOnAction(this);
-
+		getCityWeatherButt =createButton("Get weather");
+		getRateForButt = createButton("Get exchange rate for currency");
+		getNBPRateForButt = createButton("Get NBP rate for country currency");
+		getWikiDescriptionButt = createButton("Get Wiki description of city");
+	
 		menuBox.getChildren().addAll(welcomeLabel, getCityWeatherButt, getRateForButt, getNBPRateForButt,
 				getWikiDescriptionButt);
+		
 		menuBox.setAlignment(Pos.TOP_CENTER);
 		menuBox.setPadding(new Insets(10, 10, 10, 10));
 		menuBox.setPrefSize(250, 200);
@@ -115,6 +105,12 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		mainFrame.setLeft(menuBox);
 	}
 
+	private Button createButton(String name) {
+		Button bt = new Button(name);
+		bt.setOnAction(this);
+		bt.setPrefWidth(230);
+		return bt;
+	}
 	private String getUserInput(String message) {
 		TextInputDialog td = new TextInputDialog();
 		td.setHeaderText(message);
@@ -181,11 +177,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 		}
 	}
 
-	public void addTabWithResult(Object result, String tabText) {
+	private void addTabWithResult(Object result, String tabText) {
 		
 		ScrollPane scrollPane = new ScrollPane();
-		scrollPane.vbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
-		scrollPane.hbarPolicyProperty().setValue(ScrollPane.ScrollBarPolicy.ALWAYS);
+		scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
+		scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
 		if(result instanceof WebView) {
 			WebView browser = (WebView)result;
 			scrollPane.setContent(browser);
