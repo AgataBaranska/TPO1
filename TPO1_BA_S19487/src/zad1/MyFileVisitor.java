@@ -11,7 +11,6 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 
-
 public class MyFileVisitor extends SimpleFileVisitor<Path> {
 
 	private Charset inputCharset = Charset.forName("Cp1250");
@@ -19,7 +18,10 @@ public class MyFileVisitor extends SimpleFileVisitor<Path> {
 	private FileChannel outputChannel;
 
 	public MyFileVisitor(Path outputDirectory) throws IOException {
+
+		outputDirectory.toFile().delete(); // file to be delete
 		this.outputChannel = FileChannel.open(outputDirectory, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+
 	}
 
 	@Override
