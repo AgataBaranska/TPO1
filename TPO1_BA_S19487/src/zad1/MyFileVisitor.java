@@ -19,8 +19,7 @@ public class MyFileVisitor extends SimpleFileVisitor<Path> {
 
 	public MyFileVisitor(Path outputDirectory) throws IOException {
 
-		outputDirectory.toFile().delete(); // file to be delete
-		this.outputChannel = FileChannel.open(outputDirectory, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+		this.outputChannel = FileChannel.open(outputDirectory, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
 
 	}
 

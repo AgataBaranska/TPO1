@@ -38,8 +38,8 @@ public class Service {
 		this.countryLocale = findCountryLocale(country);
 		this.countryCurrencyCode = Currency.getInstance(countryLocale).getCurrencyCode();
 
-		System.out.println(String.format("Country: %s, code: %s, curency: %s", country, countryLocale.getISO3Country(),
-				countryCurrencyCode));
+		//System.out.println(String.format("Country: %s, code: %s, curency: %s", country, countryLocale.getISO3Country(),
+		//		countryCurrencyCode));
 
 		httpClient = HttpClients.createDefault();
 
